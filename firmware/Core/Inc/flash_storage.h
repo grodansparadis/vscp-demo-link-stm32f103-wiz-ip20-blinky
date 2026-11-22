@@ -30,10 +30,10 @@
  *
  * Persistent storage in the last 2 pages (2 KB) of internal flash.
  *
- * Memory map (STM32F103C6, 32 KB flash, 1 KB pages):
- *   0x08000000 – 0x080077FF  firmware  (30 KB)
- *   0x08007800 – 0x08007BFF  storage page 0  (1 KB)
- *   0x08007C00 – 0x08007FFF  storage page 1  (1 KB)
+ * Memory map (STM32F103C8, 64 KB flash, 1 KB pages):
+ *   0x08000000 – 0x0800F7FF  firmware  (62 KB)
+ *   0x0800F800 – 0x0800FBFF  storage page 0  (1 KB)
+ *   0x0800FC00 – 0x0800FFFF  storage page 1  (1 KB)
  *
  * Constraints:
  *   - An entire page must be erased before any byte in it can be written.
@@ -60,7 +60,7 @@ extern "C" {
 /* Region constants (must match linker script STORAGE region)          */
 /* ------------------------------------------------------------------ */
 
-#define FLASH_STORAGE_BASE   0x08007800UL  /**< First address of storage area */
+#define FLASH_STORAGE_BASE   0x0800F800UL  /**< First address of storage area */
 #define FLASH_STORAGE_SIZE   0x00000800UL  /**< Total size: 2 KB              */
 #define FLASH_STORAGE_PAGES  2U            /**< Number of 1 KB pages reserved  */
 //#define FLASH_PAGE_SIZE      0x00000400UL  /**< STM32F103 page size: 1 KB      */

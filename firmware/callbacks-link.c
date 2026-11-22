@@ -115,12 +115,42 @@ vscp_link_callback_quit(const void *pdata)
 
   // Disconnect from client
   char buf[80];
-  int rx_len = sendCommand("DD+OK\r\n", buf, sizeof(buf), 1000);
+  int rx_len = wiznet_ip20_send_command("DD+OK\r\n", buf, sizeof(buf), 1000);
   if (rx_len && strstr(buf, "OK")) {
-    printf("Disconnected from client\n");
+    LOGSTR("Disconnected from client\n");
   }
   else {
-    printf("Failed to disconnect from client\n");
+    LOGSTR("Failed to disconnect from client\n");
+  }
+
+  // Set context defaults
+  setContextDefaults(pctx);
+
+  return VSCP_ERROR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// vscp_link_callback_disconnect
+//
+
+int
+vscp_link_callback_disconnect(const void *pdata)
+{
+  if (NULL == pdata) {
+    return VSCP_ERROR_INVALID_POINTER;
+  }
+
+  // Get pointer to context
+  ctx_t *pctx = (ctx_t *) pdata;
+
+  // Disconnect from client (no goodbye message)
+  char buf[80];
+  int rx_len = wiznet_ip20_send_command("DD+OK\r\n", buf, sizeof(buf), 1000);
+  if (rx_len && strstr(buf, "OK")) {
+    LOGSTR("Disconnected from client\n");
+  }
+  else {
+    LOGSTR("Failed to disconnect from client\n");
   }
 
   // Set context defaults
@@ -226,7 +256,7 @@ int
 vscp_link_callback_check_user(const void *pdata, const char *arg)
 {
   if ((NULL == pdata) || (NULL == arg)) {
-    printf("Invalid context pointer or user arg\n");
+    LOGSTR("Invalid context pointer or user arg\n");
     return VSCP_ERROR_INVALID_POINTER;
   }
 
@@ -236,14 +266,14 @@ vscp_link_callback_check_user(const void *pdata, const char *arg)
     p++;
   }
 
-  printf("Username: %s\n", p);
+  LOGSTR("Username: %s\n", p);
 
   // Get pointer to context
   ctx_t *pctx = (ctx_t *) pdata;
 
   // Save username in context for later password validation
   strncpy(pctx->user, p, VSCP_LINK_MAX_USER_NAME_LENGTH);
-  printf("Username: %s\n", pctx->user);
+  LOGSTR("Username: %s\n", pctx->user);
 
   HAL_UART_Transmit(&huart1, (uint8_t *) VSCP_LINK_MSG_USENAME_OK, strlen(VSCP_LINK_MSG_USENAME_OK), HAL_MAX_DELAY);
   return VSCP_ERROR_SUCCESS;
@@ -257,7 +287,7 @@ int
 vscp_link_callback_check_password(const void *pdata, const char *arg)
 {
   if ((NULL == pdata) || (NULL == arg)) {
-    printf("Invalid context pointer or password arg\n");
+    LOGSTR("Invalid context pointer or password arg\n");
     return VSCP_ERROR_INVALID_POINTER;
   }
 
@@ -270,7 +300,7 @@ vscp_link_callback_check_password(const void *pdata, const char *arg)
                       (uint8_t *) VSCP_LINK_MSG_NEED_USERNAME,
                       strlen(VSCP_LINK_MSG_NEED_USERNAME),
                       HAL_MAX_DELAY);
-    printf("Password: No username yet\n");
+    LOGSTR("Password: No username yet\n");
     return VSCP_ERROR_SUCCESS;
   }
 
@@ -280,8 +310,8 @@ vscp_link_callback_check_password(const void *pdata, const char *arg)
     p++;
   }
 
-  printf("Username:'%s'\n", pctx->user);
-  printf("Password '%s'\n", p);
+  LOGSTR("Username:'%s'\n", pctx->user);
+  LOGSTR("Password '%s'\n", p);
 
   // if (0 == strcmp(pctx->user, "admin") && 0 == strcmp(p, "secret")) {
 
@@ -297,7 +327,7 @@ vscp_link_callback_check_password(const void *pdata, const char *arg)
                       (uint8_t *) VSCP_LINK_MSG_PASSWORD_ERROR,
                       strlen(VSCP_LINK_MSG_PASSWORD_ERROR),
                       HAL_MAX_DELAY);
-    printf("Credentials: Invalid\n");
+    LOGSTR("Credentials: Invalid\n");
     return VSCP_ERROR_SUCCESS;
   }
 
@@ -308,6 +338,19 @@ vscp_link_callback_check_password(const void *pdata, const char *arg)
 ///////////////////////////////////////////////////////////////////////////////
 // vscp_link_callback_challenge
 //
+
+// Small xorshift32 PRNG. Avoids newlib rand(), which drags in the whole
+// stdio/assert/malloc machinery (~4 KB of flash) on this 32 KB part.
+static uint32_t
+prng32(void)
+{
+  static uint32_t state = 0x7badc0deUL;
+  state ^= HAL_GetTick();
+  state ^= state << 13;
+  state ^= state >> 17;
+  state ^= state << 5;
+  return state;
+}
 
 int
 vscp_link_callback_challenge(const void *pdata, const char *arg)
@@ -333,7 +376,7 @@ vscp_link_callback_challenge(const void *pdata, const char *arg)
   }
 
   for (int i = 0; i < 32; i++) {
-    random_data[i] = rand() >> 16;
+    random_data[i] = (char) (prng32() >> 16);
     if (i < (int) (sizeof(challenge_prefix) - 1)) {
       random_data[i] += (uint8_t) challenge_prefix[i];
     }
@@ -469,7 +512,7 @@ vscp_link_callback_send(const void *pdata, vscp_event_t *pev)
         pev->GUID[0] + (pev->vscp_type << 8) + (pev->vscp_class << 16) + (((pev->head >> 5) & 7) << 26);
       can4vscp_send(&tx_msg, portMAX_DELAY);
       */
-      printf("Transmitted start command");
+      LOGSTR("Transmitted start command");
     }
   }
 
@@ -569,11 +612,11 @@ vscp_link_callback_retr(const void *pdata, vscp_event_t **pev)
     // memcpy((*pev)->pdata, msg.data, dlc);
   }
 
-  printf("--> Event fetched %X", (unsigned int) id);
+  LOGSTR("--> Event fetched %X", (unsigned int) id);
 
   // UBaseType_t cnt = uxQueueMessagesWaiting(tr_tcpsrv[pctx->id].fromcan_queue);
   // uint8_t cnt = 0; // TODO
-  // printf("count=%u %d", cnt, rv);
+  // LOGSTR("count=%u %d", cnt, rv);
 
   (*pev)->head       = (id >> (26 - 5)) & 0x00e0;
   (*pev)->timestamp  = usec_now();
@@ -673,11 +716,11 @@ vscp_link_callback_chkData(const void *pdata, uint16_t *pcount)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// vscp_link_callback_clrAll
+// vscp_link_callback_clrall
 //
 
 int
-vscp_link_callback_clrAll(const void *pdata)
+vscp_link_callback_clrall(const void *pdata)
 {
   if (NULL == pdata) {
     return VSCP_ERROR_INVALID_POINTER;

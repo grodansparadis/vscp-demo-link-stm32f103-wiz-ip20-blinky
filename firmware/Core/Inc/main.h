@@ -69,7 +69,7 @@ setContextDefaults(ctx_t *pctx);
   * @retval int 0 if successful, -1 if failed.
   */
 int
-goCommandMode(void);
+wiznet_ip20_command_mode(void);
 
 /*!
   * @brief  Send a command to the WIZ-IP20 module and wait for a response.
@@ -77,9 +77,10 @@ goCommandMode(void);
   * @param  response_buf: Buffer to store the response (must be pre-allocated).
   * @param  response_buf_size: Size of the response buffer.
   * @param  timeout_ms: Timeout in milliseconds to wait for the response.
-  * @retval int Number of bytes received in the response, or -1 if an error occurred.
+  * @retval int 1 on success (response received), 0 on failure (timeout or error).
 */
-int sendCommand(const char *cmd, char *response_buf, size_t response_buf_size, uint16_t timeout_ms);
+int
+wiznet_ip20_send_command(const char *cmd, char *response_buf, size_t response_buf_size, uint16_t timeout_ms);
 
 /**
  * @fn validate_user

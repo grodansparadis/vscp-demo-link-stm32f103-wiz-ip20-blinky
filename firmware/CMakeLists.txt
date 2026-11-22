@@ -46,17 +46,16 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/flash_storage.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/libc_shim.c
     ${CMAKE_CURRENT_SOURCE_DIR}/callbacks-link.c
     ${CMAKE_CURRENT_SOURCE_DIR}/callbacks-vscp-protocol.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/callbacks-link.c
     ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-fifo.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-aes.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-fifo.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-crc.c
+#    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-aes.c
+#    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-crc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-firmware-helper.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-link-protocol.c    
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-link-protocol.c
     ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-firmware-level2.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-binary-protocol.c
+#    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-binary-protocol.c
 )
 
 # Add include paths
@@ -83,8 +82,11 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
 # Optimize for size and enable LTO for non-Debug builds
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Os -flto)
-    target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -flto)
+    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Os -flto -ffunction-sections -fdata-sections )
+    target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -Wl,--gc-sections -flto)
+else()
+    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Os -flto -ffunction-sections -fdata-sections)
+    target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -Wl,--gc-sections -flto)
 endif()
 
 # Post-build: generate .hex and .bin from .elf

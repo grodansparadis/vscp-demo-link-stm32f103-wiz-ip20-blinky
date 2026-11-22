@@ -23,3 +23,14 @@ If you only want to implement a protocol converter that converts between a seria
 If the node needs other functionality it is now time to implement this functionality. In this case read/write registers of the node, handle specific commands, implement a decision matrix, etc. 
 
 8.) Implement any additional functionality required for the node. This could include reading and writing registers, handling specific commands, implementing a decision matrix, or other custom features. The vscp-firmware-level2.h/vscp-firmware-level2.c files provide a framework for implementing additional functionality, and the callback functions can be used to integrate this functionality into the main server loop. This allows for a flexible and extensible implementation that can be tailored to the specific needs of the application.
+
+9.) Keep an eye on memory usage. The STM32F103C6T6 used here has only 32 KB of flash (30 KB available for firmware after the 2 KB storage reservation) and 10 KB of RAM, and the full VSCP link protocol implementation nearly fills it: a Release build uses about 98 % of the firmware region. For this reason both Debug and Release builds use `-Os` with LTO, debug output goes through the no-op `LOGSTR()` macro instead of `printf()` (a single `printf()` or `rand()` call pulls in several KB of newlib stdio code), small local `strstr`/`strcmp` replacements are used instead of newlib's larger versions, and the VSCP AES/CRC/binary-protocol modules are disabled in the build. Check the `Memory region` summary printed at the end of every link before adding new functionality; if more room is needed, the pin-compatible STM32F103C8T6 (64 KB flash / 20 KB RAM) provides ample headroom.
+
+
+
+Receive data coming in through the communication channel (e.g. UART, socket etc.) and store it in a buffer. The buffer should be large enough to hold a complete command, and it should be implemented as a FIFO to handle multiple incoming commands. For example can the UART receive interrupt handler be used to fill the buffer with incoming data, and it should also handle any necessary parsing of the data (e.g. looking for command terminators such as \r\n).
+
+
+
+In the main loop of the program check the input buffer for incoming commands. An incomming command is a line ending with \r\n. If such a line is found consume it and remove the terminating \r\n. Make sure it is null-terminated. Then pass the command to the vscp_link_protocol_parseCommand function. This function will parse the command and call the appropriate callback function to handle the command. The callback functions are implemented in the vscp-firmware-level2.c file, and they handle the specific functionality of the node, such as controlling the LED or sending events.
+
