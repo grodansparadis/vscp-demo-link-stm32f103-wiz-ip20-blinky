@@ -12,6 +12,8 @@ VSCP blink is the simplest possible VSCP application, toggling an LED on and off
 - [WIZ-IP20 Product Page](https://wiznet.io/products/serial-to-ethernet-modules/wiz-ip20)
 - [WIZnet S2E Tool GUI Getting Started Guide](https://github.com/Wiznet/WIZnet-S2E-Tool-GUI/wiki/Getting-started-guide_en)
 
+![Wiring Diagram](./images/STM32-Blue-Pill-to-WIZnet-Wiring-Diagram.png)
+
 ### Resources
 
 * TIM2 is used as a millisecond timebase.
